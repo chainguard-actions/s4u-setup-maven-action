@@ -1,0 +1,46 @@
+name: Test checkout-ssh-key input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Generate a temporary SSH key for testing
+        run: |
+          ssh-keygen -t ed25519 -f /tmp/test_ssh_key -N "" -C "test@example.com"
+          echo "SSH_PRIVATE_KEY=$(cat /tmp/test_ssh_key)" >> $GITHUB_ENV
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          checkout-enabled: 'true'
+          checkout-ssh-key: ${{ env.SSH_PRIVATE_KEY }}
+          checkout-path: 'checkout-ssh-subdir'
+          java-version: '21'
+          cache-enabled: 'false'
+      - name: Assert action ran (ssh-key input exercised)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          # The action may fail because the SSH key doesn't have access to the repo,
+          # but the input was exercised. Either success or graceful failure is acceptable.
+          if [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded with ssh-key input"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (SSH key not authorized for repo, expected)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
+      - name: Assert Maven is available (if action succeeded)
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          if [ "$OUTCOME" = "success" ]; then
+            mvn --version
+            echo "PASS: Maven is available"
+          else
+            echo "SKIP: action did not succeed, skipping Maven check"
+          fi

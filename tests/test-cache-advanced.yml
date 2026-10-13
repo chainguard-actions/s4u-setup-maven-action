@@ -1,0 +1,25 @@
+name: Test cache-path-add and cache-prefix inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          checkout-enabled: 'false'
+          java-version: '21'
+          cache-enabled: 'true'
+          cache-prefix: 'myprefix-'
+          cache-path: '~/.m2/repository'
+          cache-path-add: '~/.m2/wrapper'
+      - name: Assert Maven is available
+        run: |
+          mvn --version
+          echo "PASS: Maven is available"
+      - name: Assert Java version
+        run: |
+          java -version 2>&1 | grep -q "21\." || java -version 2>&1 | grep -q "version \"21"
+          echo "PASS: Java 21 is available"

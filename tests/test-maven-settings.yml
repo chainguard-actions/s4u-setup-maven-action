@@ -1,0 +1,58 @@
+name: Test Maven settings configuration
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          java-version: '17'
+          java-distribution: 'zulu'
+          maven-version: '3.9.16'
+          cache-enabled: 'false'
+          checkout-enabled: 'false'
+          settings-servers: '[{"id": "my-server", "username": "myuser", "password": "mypassword"}]'
+          settings-mirrors: '[{"id": "central-mirror", "name": "Central Mirror", "mirrorOf": "central", "url": "https://repo1.maven.org/maven2"}]'
+          settings-githubServer: 'false'
+
+      - name: Assert settings.xml exists
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "checking: $SETTINGS"
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: settings.xml not found at $SETTINGS"
+            exit 1
+          fi
+          echo "PASS: settings.xml exists"
+
+      - name: Assert server is configured in settings.xml
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "settings.xml content:"
+          cat "$SETTINGS"
+          if ! grep -q "my-server" "$SETTINGS"; then
+            echo "FAIL: server 'my-server' not found in settings.xml"
+            exit 1
+          fi
+          if ! grep -q "myuser" "$SETTINGS"; then
+            echo "FAIL: username 'myuser' not found in settings.xml"
+            exit 1
+          fi
+          echo "PASS: server configuration found in settings.xml"
+
+      - name: Assert mirror is configured in settings.xml
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q "central-mirror" "$SETTINGS"; then
+            echo "FAIL: mirror 'central-mirror' not found in settings.xml"
+            exit 1
+          fi
+          if ! grep -q "Central Mirror" "$SETTINGS"; then
+            echo "FAIL: mirror name 'Central Mirror' not found in settings.xml"
+            exit 1
+          fi
+          echo "PASS: mirror configuration found in settings.xml"

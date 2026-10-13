@@ -1,0 +1,43 @@
+name: Test custom settings path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create custom settings directory
+        run: mkdir -p "$HOME/custom-maven"
+
+      - id: action
+        uses: .
+        with:
+          java-version: '17'
+          java-distribution: 'zulu'
+          maven-version: '3.9.16'
+          cache-enabled: 'false'
+          checkout-enabled: 'false'
+          settings-githubServer: 'false'
+          settings-path: '${{ github.workspace }}/custom-settings.xml'
+
+      - name: Assert custom settings.xml exists
+        run: |
+          SETTINGS="$GITHUB_WORKSPACE/custom-settings.xml"
+          echo "checking: $SETTINGS"
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: custom settings.xml not found at $SETTINGS"
+            exit 1
+          fi
+          echo "PASS: custom settings.xml exists at $SETTINGS"
+
+      - name: Assert custom settings.xml is valid XML
+        run: |
+          SETTINGS="$GITHUB_WORKSPACE/custom-settings.xml"
+          echo "settings.xml content:"
+          cat "$SETTINGS"
+          if ! grep -q "<settings" "$SETTINGS"; then
+            echo "FAIL: custom settings.xml does not appear to be valid Maven settings"
+            exit 1
+          fi
+          echo "PASS: custom settings.xml is valid Maven settings XML"

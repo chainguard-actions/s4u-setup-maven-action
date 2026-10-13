@@ -1,0 +1,54 @@
+name: Test Maven settings with properties and sonatype snapshots
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          java-version: '17'
+          java-distribution: 'zulu'
+          maven-version: '3.9.16'
+          cache-enabled: 'false'
+          checkout-enabled: 'false'
+          settings-properties: '[{"myProperty": "myValue"}, {"anotherProp": "anotherValue"}]'
+          settings-sonatypeSnapshots: 'true'
+          settings-githubServer: 'false'
+
+      - name: Assert settings.xml exists
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "checking: $SETTINGS"
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: settings.xml not found at $SETTINGS"
+            exit 1
+          fi
+          echo "PASS: settings.xml exists"
+
+      - name: Assert properties are configured in settings.xml
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "settings.xml content:"
+          cat "$SETTINGS"
+          if ! grep -q "myProperty" "$SETTINGS"; then
+            echo "FAIL: property 'myProperty' not found in settings.xml"
+            exit 1
+          fi
+          if ! grep -q "myValue" "$SETTINGS"; then
+            echo "FAIL: property value 'myValue' not found in settings.xml"
+            exit 1
+          fi
+          echo "PASS: properties found in settings.xml"
+
+      - name: Assert sonatype snapshots repository is configured
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q "sonatype" "$SETTINGS"; then
+            echo "FAIL: sonatype snapshots repository not found in settings.xml"
+            exit 1
+          fi
+          echo "PASS: sonatype snapshots repository found in settings.xml"

@@ -1,0 +1,46 @@
+name: Test checkout disabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          java-version: '17'
+          java-distribution: 'zulu'
+          maven-version: '3.9.16'
+          cache-enabled: 'false'
+          checkout-enabled: 'false'
+
+      - name: Assert Java is installed
+        run: |
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "java version: $JAVA_VER"
+          if ! echo "$JAVA_VER" | grep -q "17"; then
+            echo "FAIL: expected Java 17 but got: $JAVA_VER"
+            exit 1
+          fi
+          echo "PASS: Java 17 is installed"
+
+      - name: Assert Maven is installed
+        run: |
+          MVN_VER=$(mvn --version 2>&1 | head -1)
+          echo "maven version: $MVN_VER"
+          if ! echo "$MVN_VER" | grep -q "3.9.16"; then
+            echo "FAIL: expected Maven 3.9.16 but got: $MVN_VER"
+            exit 1
+          fi
+          echo "PASS: Maven 3.9.16 is installed"
+
+      - name: Assert workspace files are present (checkout was done by prior step)
+        run: |
+          echo "workspace: $GITHUB_WORKSPACE"
+          if [ ! -f "$GITHUB_WORKSPACE/action.yml" ]; then
+            echo "FAIL: action.yml not found in workspace (checkout should have been done before)"
+            exit 1
+          fi
+          echo "PASS: workspace files are present"

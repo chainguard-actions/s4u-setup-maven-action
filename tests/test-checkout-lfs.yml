@@ -1,0 +1,27 @@
+name: Test checkout-lfs input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          checkout-enabled: 'true'
+          checkout-lfs: 'false'
+          checkout-path: 'checkout-lfs-subdir'
+          java-version: '21'
+          cache-enabled: 'false'
+      - name: Assert checkout path exists
+        run: |
+          if [ ! -d "$GITHUB_WORKSPACE/checkout-lfs-subdir" ]; then
+            echo "FAIL: checkout-path directory 'checkout-lfs-subdir' does not exist"
+            exit 1
+          fi
+          echo "PASS: checkout-lfs-subdir directory exists"
+      - name: Assert Maven is available
+        run: |
+          mvn --version
+          echo "PASS: Maven is available"

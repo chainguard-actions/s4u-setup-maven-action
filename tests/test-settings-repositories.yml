@@ -1,0 +1,40 @@
+name: Test settings-repositories and settings-pluginRepositories inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          checkout-enabled: 'false'
+          java-version: '21'
+          cache-enabled: 'false'
+          settings-githubServer: 'false'
+          settings-repositories: '[{"id":"central","name":"Maven Central","url":"https://repo1.maven.org/maven2","snapshots":{"enabled":false}}]'
+          settings-pluginRepositories: '[{"id":"central-plugins","name":"Maven Central Plugins","url":"https://repo1.maven.org/maven2","snapshots":{"enabled":false}}]'
+      - name: Assert settings.xml exists
+        run: |
+          if [ ! -f "$HOME/.m2/settings.xml" ]; then
+            echo "FAIL: settings.xml not found at $HOME/.m2/settings.xml"
+            exit 1
+          fi
+          echo "PASS: settings.xml exists"
+      - name: Assert repositories in settings.xml
+        run: |
+          if ! grep -q "central" "$HOME/.m2/settings.xml"; then
+            echo "FAIL: repository 'central' not found in settings.xml"
+            cat "$HOME/.m2/settings.xml"
+            exit 1
+          fi
+          echo "PASS: repository found in settings.xml"
+      - name: Assert plugin repositories in settings.xml
+        run: |
+          if ! grep -q "central-plugins" "$HOME/.m2/settings.xml"; then
+            echo "FAIL: pluginRepository 'central-plugins' not found in settings.xml"
+            cat "$HOME/.m2/settings.xml"
+            exit 1
+          fi
+          echo "PASS: pluginRepository found in settings.xml"

@@ -1,0 +1,23 @@
+name: Test java-jdkFile input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          checkout-enabled: 'false'
+          java-version: '21'
+          java-jdkFile: ''
+          cache-enabled: 'false'
+      - name: Assert Java is available
+        run: |
+          java -version 2>&1
+          echo "PASS: Java is available"
+      - name: Assert Maven is available
+        run: |
+          mvn --version
+          echo "PASS: Maven is available"

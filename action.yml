@@ -154,7 +154,7 @@ runs:
       if: inputs.maven-version != steps.current-maven.outputs.version
       with:
         maven-version: '${{ inputs.maven-version }}'
-    - uses: s4u/maven-settings-action@894661b3ddae382f1ae8edbeab60987e08cf0788 # v4.0.0
+    - uses: chainguard-actions/s4u-maven-settings-action@5926aff74c5090bdc24ba1189717e1249d2fe79b # v4.0.0
       with:
         servers: '${{ inputs.settings-servers }}'
         mirrors: '${{ inputs.settings-mirrors }}'

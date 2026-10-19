@@ -1,0 +1,45 @@
+name: Test Sonatype snapshots repository
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          checkout-enabled: 'false'
+          java-version: '17'
+          java-distribution: 'zulu'
+          maven-version: '3.9.6'
+          cache-enabled: 'false'
+          settings-githubServer: 'false'
+          settings-sonatypeSnapshots: 'true'
+
+      - name: Assert settings.xml exists
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "Checking $SETTINGS..."
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: settings.xml not found at $SETTINGS"
+            exit 1
+          fi
+          echo "PASS: settings.xml exists"
+          cat "$SETTINGS"
+
+      - name: Assert Sonatype snapshots repository in settings.xml
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "Checking Sonatype snapshots configuration..."
+          if ! grep -q "sonatype" "$SETTINGS"; then
+            echo "FAIL: Sonatype repository not found in settings.xml"
+            exit 1
+          fi
+          echo "PASS: Sonatype snapshots repository found in settings.xml"
+
+      - name: Assert Maven is functional
+        run: |
+          mvn --version
+          echo "PASS: Maven is functional"

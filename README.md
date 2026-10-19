@@ -1,14 +1,138 @@
-# s4u/setup-maven-action
+# Setup Maven Action
+[![Test](https://github.com/s4u/setup-maven-action/actions/workflows/test.yml/badge.svg)](https://github.com/s4u/setup-maven-action/actions/workflows/test.yml)
 
-Complete environment configuration for Maven builds
+This is composite action which help to prepare GitHub Actions environment for Maven build by calling:
 
-Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/s4u/setup-maven-action](https://github.com/s4u/setup-maven-action).
+- [actions/checkout](https://github.com/marketplace/actions/checkout)
+- [actions/setup-java](https://github.com/marketplace/actions/setup-java-jdk)
+- [actions/cache](https://github.com/marketplace/actions/cache)
+- [stCarolas/setup-maven](https://github.com/marketplace/actions/setup-maven)
+- [s4u/maven-settings-action](https://github.com/marketplace/actions/maven-settings-action)
 
-## Versions
+:exclamation: You **should not** include above actions in your configuration - in other case  those will be **called twice**. :exclamation:
 
-| Version | Tag | Upstream commit |
-|---------|-----|-----------------|
-| v1.21.0 | [`v1.21.0`](https://github.com/chainguard-actions/s4u-setup-maven-action/tree/v1.21.0) | [`4a02cbd`](https://github.com/s4u/setup-maven-action/commit/4a02cbd99769e46198135c31d5097c94618ba3f5) |
+For default values you only need:
+
+```yml
+    steps:
+
+      - name: Setup Maven Action
+        uses: s4u/setup-maven-action@< version >
+
+      - run: mvn -V ...
+```
+
+# Params mapping for sub actions
+
+## checkout
+
+| params                       | destination         | default                  |
+|------------------------------|---------------------|--------------------------|
+| checkout-enabled             | enabled             |  true                    |
+| checkout-fetch-depth         | fetch-depth         |                          |
+| checkout-submodules          | submodules          |                          |
+| checkout-path                | path                |                          |
+| checkout-ref                 | ref                 |                          |
+| checkout-repository          | repository          | ${{ github.repository }} |
+| checkout-token               | token               | ${{ github.token }}      |
+| checkout-ssh-key             | ssh-key             |                          |
+| checkout-persist-credentials | persist-credentials | false                    |
+| checkout-lfs                 | lfs                 | false                    |
+
+## setup-java
+
+| params            | destination  | default |
+|-------------------|--------------|---------|
+| java-version      | java-version | 25      |
+| java-distribution | distribution | zulu    |
+| java-jdkFile      | jdk-file     |         |
+
+## cache
+
+A cache action is configured as:
+
+```yaml
+    - uses: actions/cache
+      with:
+        path: |
+          ${{ inputs.cache-path }}
+          ${{ inputs.cache-path-add }}
+        key: ${{ inputs.cache-prefix }}${{ runner.os }}-jdk${{ inputs.java-version }}-${{ inputs.java-distribution }}-maven${{ inputs.maven-version }}-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ inputs.cache-prefix }}${{ runner.os }}-jdk${{ inputs.java-version }}-${{ inputs.java-distribution }}-maven${{ inputs.maven-version }}-
+```
+
+So we can use for action:
+
+| params         | description                                              |
+|----------------|----------------------------------------------------------|
+| cache-enabled  | enable cache. Default true                               |
+| cache-path     | default cache path for Maven with value ~/.m2/repository |
+| cache-path-add | additional value for cache path                          |
+| cache-prefix   | prefix value for `key` and `restore-keys` cache params   |
+
+
+## setup-maven
+
+| params        | destination   | default |
+|---------------|---------------|---------|
+| maven-version | maven-version | 3.10.0  |
+
+## maven-settings-action
+
+| params                      | destination        |
+|-----------------------------|--------------------|
+| settings-servers            | servers            |
+| settings-mirrors            | mirrors            |
+| settings-properties         | properties         |
+| settings-sonatypeSnapshots  | sonatypeSnapshots  |
+| settings-proxies            | proxies            |
+| settings-repositories       | repositories       |
+| settings-pluginRepositories | pluginRepositories |
+| settings-githubServer       | githubServer       |
+| settings-path               | path               |
+
+# Testing against different Maven versions
+
+```yaml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        maven: [ '3.8.8', '3.9.8' ]
+
+    name: Maven ${{ matrix.maven }} sample
+
+    steps:
+
+      - name: Setup Maven Action
+        uses: s4u/setup-maven-action@< version >
+        with:
+          java-version: 8
+          maven-version: ${{ matrix.maven }}
+
+      - run: mvn -V ...
+```
+
+# Contributions
+
+- Contributions are welcome!
+- Give :star: - if you want to encourage me to work on a project
+- Don't hesitate to create issues for new features you dream of or if you suspect some bug
+
+# Project versioning
+
+This project uses [Semantic Versioning](https://semver.org/).
+We recommended using the latest and specific release version.
+
+In order to keep your project dependencies up to date you can watch this repository *(Releases only)*
+or use automatic tools like [Dependabot](https://docs.github.com/en/code-security/supply-chain-security/keeping-your-dependencies-updated-automatically/about-dependabot-version-updates).
+
+# License
+
+The scripts and documentation in this project are released under the [MIT License](LICENSE)
 
 ## Privacy
 

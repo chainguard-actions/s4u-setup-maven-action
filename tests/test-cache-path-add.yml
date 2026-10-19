@@ -1,0 +1,35 @@
+name: Test cache-path-add input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          checkout-enabled: 'false'
+          java-version: '21'
+          java-distribution: 'zulu'
+          cache-enabled: 'true'
+          cache-path: '~/.m2/repository'
+          cache-path-add: '~/.m2/wrapper'
+      - name: Assert Maven is available
+        run: |
+          MVN_VER=$(mvn --version 2>&1 | head -1)
+          echo "Maven version: $MVN_VER"
+          if ! echo "$MVN_VER" | grep -q "Apache Maven"; then
+            echo "FAIL: Maven not available"
+            exit 1
+          fi
+          echo "PASS: Maven is available"
+      - name: Assert Java is set up
+        run: |
+          JAVA_VER=$(java -version 2>&1 | head -1)
+          echo "Java version: $JAVA_VER"
+          if ! java -version 2>&1 | grep -q "version"; then
+            echo "FAIL: Java not set up correctly"
+            exit 1
+          fi
+          echo "PASS: Java is available"

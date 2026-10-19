@@ -1,0 +1,46 @@
+name: Test maven settings extended inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          checkout-enabled: 'false'
+          java-version: '21'
+          java-distribution: 'zulu'
+          cache-enabled: 'false'
+          settings-properties: '[{"myProperty": "myValue"}]'
+          settings-proxies: '[{"id": "test-proxy", "active": "false", "protocol": "http", "host": "proxy.example.com", "port": "8080", "nonProxyHosts": "localhost"}]'
+          settings-repositories: '[{"id": "central", "name": "Central Repository", "url": "https://repo.maven.apache.org/maven2", "snapshots": {"enabled": false}}]'
+          settings-pluginRepositories: '[{"id": "central-plugins", "name": "Central Plugin Repository", "url": "https://repo.maven.apache.org/maven2", "snapshots": {"enabled": false}}]'
+          settings-githubServer: 'false'
+      - name: Assert settings.xml exists
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          echo "Checking $SETTINGS..."
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: settings.xml not found at $SETTINGS"
+            exit 1
+          fi
+          echo "PASS: settings.xml exists"
+          cat "$SETTINGS"
+      - name: Assert settings contains proxy config
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q "proxy.example.com" "$SETTINGS"; then
+            echo "FAIL: proxy host not found in settings.xml"
+            exit 1
+          fi
+          echo "PASS: proxy configuration found in settings.xml"
+      - name: Assert settings contains repository config
+        run: |
+          SETTINGS="$HOME/.m2/settings.xml"
+          if ! grep -q "repo.maven.apache.org" "$SETTINGS"; then
+            echo "FAIL: repository URL not found in settings.xml"
+            exit 1
+          fi
+          echo "PASS: repository configuration found in settings.xml"

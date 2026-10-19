@@ -1,0 +1,48 @@
+name: Test custom settings path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create custom settings directory
+        run: mkdir -p "$HOME/custom-maven-settings"
+
+      - id: action
+        uses: .
+        with:
+          checkout-enabled: 'false'
+          java-version: '17'
+          java-distribution: 'zulu'
+          maven-version: '3.9.6'
+          cache-enabled: 'false'
+          settings-githubServer: 'false'
+          settings-servers: '[{"id": "custom-server", "username": "customuser", "password": "custompass"}]'
+          settings-path: '${{ github.workspace }}/custom-maven-settings/settings.xml'
+
+      - name: Assert custom settings.xml exists
+        run: |
+          SETTINGS="$GITHUB_WORKSPACE/custom-maven-settings/settings.xml"
+          echo "Checking custom settings at $SETTINGS..."
+          if [ ! -f "$SETTINGS" ]; then
+            echo "FAIL: custom settings.xml not found at $SETTINGS"
+            exit 1
+          fi
+          echo "PASS: custom settings.xml exists"
+          cat "$SETTINGS"
+
+      - name: Assert server in custom settings.xml
+        run: |
+          SETTINGS="$GITHUB_WORKSPACE/custom-maven-settings/settings.xml"
+          if ! grep -q "custom-server" "$SETTINGS"; then
+            echo "FAIL: 'custom-server' not found in custom settings.xml"
+            exit 1
+          fi
+          echo "PASS: custom server configuration found"
+
+      - name: Assert Maven is available
+        run: |
+          mvn --version
+          echo "PASS: Maven is available"

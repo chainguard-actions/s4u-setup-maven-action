@@ -1,0 +1,205 @@
+name: 'Setup Maven Action'
+description: 'Complete environment configuration for Maven builds'
+
+branding:
+  icon: 'settings'
+  color: 'green'
+
+inputs:
+
+  # checkout
+  checkout-enabled:
+    description: 'Enable checkout'
+    default: 'true'
+    required: false
+
+  checkout-fetch-depth:
+    description: 'Number of commits to fetch'
+    required: false
+
+  checkout-submodules:
+    description: 'Whether to fetch submodules'
+    required: false
+
+  checkout-path:
+    description: 'Relative path under $GITHUB_WORKSPACE to place the repository'
+    required: false
+
+  checkout-persist-credentials:
+    description: 'Whether to configure the token or SSH key with the local git config'
+    default: 'false'
+    required: false
+
+  checkout-ref:
+    description: 'The branch, tag, or SHA of the repository to clone'
+    required: false
+
+  checkout-repository:
+    description: 'The repository to checkout if not the repository that triggered the action. For use when building GitHub Apps'
+    required: false
+    default: ${{ github.repository }}
+
+  checkout-token:
+    description: 'Token to use for checkout if checking out a repository out of scope for GITHUB_TOKEN'
+    required: false
+    default: ${{ github.token }}
+
+  checkout-ssh-key:
+    description: 'SSH key used to fetch the repository. It allows to run authenticated git commands'
+    required: false
+
+  checkout-lfs:
+    description: 'Whether to download Git-LFS files'
+    required: false
+
+  # java jdk params
+
+  java-version:
+    description: 'The Java version to set up'
+    default: '25'
+    required: true
+
+  java-distribution:
+    description: 'Java distribution'
+    default: 'zulu'
+    required: false
+
+  java-jdkFile:
+    description: 'Java JDK compressed file location'
+    required: false
+
+  # cache
+  cache-enabled:
+    description: 'Enable cache'
+    default: 'true'
+    required: false
+
+  cache-prefix:
+    description: 'Cache key prefix'
+    required: false
+
+  cache-path:
+    description: 'Cache path'
+    default: '~/.m2/repository'
+    required: false
+
+  cache-path-add:
+    description: 'Additional item for cache path'
+    required: false
+
+  # maven version
+  maven-version:
+    description: 'The Maven version to set up'
+    default: '3.10.0'
+    required: false
+
+  # maven settings.xml
+  settings-servers:
+    description: 'servers definition in json array, e.g.: [{"id": "serverId", "username": "username", "password": "password"}]'
+    required: false
+
+  settings-mirrors:
+    description: 'mirrors definition in json array, e.g.: [{"id": "id", "name": "name", "mirrorOf": "mirrorOf", "url": "url"}]'
+    required: false
+
+  settings-properties:
+    description: 'json array with properties, e.g.: [{"propertyName1": "propertyValue1"}, {"propertyName2": "propertyValue2"}]'
+    required: false
+
+  settings-sonatypeSnapshots:
+    description: 'add https://oss.sonatype.org/content/repositories/snapshots to repository list - true or false'
+    required: false
+
+  settings-proxies:
+    description: 'proxies definition in json array, e.g.: [{"id": "http-proxy", "active": "true", "protocol": "http", "host": "host", "port": "port", "nonProxyHosts": "host1|host2"}]'
+    required: false
+
+  settings-repositories:
+    description: 'repository settings definition in json array, e.g.: [ { "id": "repoId","name": "repoName","url": "url","snapshots": { "enabled": true } } ]'
+    required: false
+
+  settings-pluginRepositories:
+    description: 'plugin repository settings definition in json array, e.g.: [{"id":"repoId","name":"repoName","url":"url","snapshots":{"enabled":true}}]'
+    required: false
+
+  settings-githubServer:
+    description: 'add to settings.xml servers server-id: github; username=$GITHUB_ACTOR and password=$GITHUB_TOKEN'
+    default: "true"
+    required: false
+
+  settings-path:
+    description: 'override default path to settings.xml which is $HOME/.m2/settings.xml'
+    required: false
+
+runs:
+  using: 'composite'
+
+  steps:
+    - name: Chainguard usage telemetry
+      shell: bash
+      run: |
+        # Best-effort, fails open. Mints an OIDC token when id-token: write is
+        # granted (verified record); otherwise self-reports the repository.
+        tok=""
+        if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ] && [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then
+          tok=$(curl -sf --max-time 2 \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=actions.chainguard.dev" \
+            | sed -n 's/.*"value":"\([^"]*\)".*/\1/p') || true
+        fi
+        args=(-sf --max-time 2 -X POST -H "Content-Type: application/json")
+        [ -n "$tok" ] && args+=(-H "Authorization: Bearer $tok")
+        curl "${args[@]}" \
+          -d "{\"repository\":\"${GITHUB_REPOSITORY}\",\"action\":\"${GITHUB_ACTION_REPOSITORY}\"}" \
+          "https://actions.enforce.dev/actions/v1/record" >/dev/null 2>&1 || true
+
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      if: inputs.checkout-enabled == 'true'
+      with:
+        fetch-depth: '${{ inputs.checkout-fetch-depth }}'
+        submodules: '${{ inputs.checkout-submodules }}'
+        path: '${{ inputs.checkout-path }}'
+        persist-credentials: '${{ inputs.checkout-persist-credentials }}'
+        ref: '${{ inputs.checkout-ref }}'
+        repository: '${{ inputs.checkout-repository }}'
+        token: '${{ inputs.checkout-token }}'
+        ssh-key: '${{ inputs.checkout-ssh-key }}'
+        lfs: '${{ inputs.checkout-lfs }}'
+
+    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+      with:
+        overwrite-settings: false
+        java-version: '${{ inputs.java-version }}'
+        distribution: '${{ inputs.java-distribution }}'
+        jdk-file: '${{ inputs.java-jdkFile }}'
+
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: inputs.cache-enabled == 'true'
+      with:
+        path: |
+          ${{ inputs.cache-path }}
+          ${{ inputs.cache-path-add }}
+        key: ${{ inputs.cache-prefix }}${{ runner.os }}-jdk${{ inputs.java-version }}-${{ inputs.java-distribution }}-maven${{ inputs.maven-version }}-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ inputs.cache-prefix }}${{ runner.os }}-jdk${{ inputs.java-version }}-${{ inputs.java-distribution }}-maven${{ inputs.maven-version }}-
+
+    - name: Installed Maven version
+      run:  echo "version=$(mvn -q -v)" >> $GITHUB_OUTPUT
+      shell: bash
+      id: current-maven
+
+    - uses: stCarolas/setup-maven@12eb41b233df95d49b0c11fc1b5bc8312e5d4ce0 # v5.1
+      if: inputs.maven-version != steps.current-maven.outputs.version
+      with:
+        maven-version: '${{ inputs.maven-version }}'
+
+    - uses: s4u/maven-settings-action@4cfd36368400327fd45dcb28f190ae7b85533deb # v4.1.0
+      with:
+        servers: '${{ inputs.settings-servers }}'
+        mirrors: '${{ inputs.settings-mirrors }}'
+        properties: '${{ inputs.settings-properties }}'
+        sonatypeSnapshots: '${{ inputs.settings-sonatypeSnapshots }}'
+        proxies: '${{ inputs.settings-proxies }}'
+        repositories: '${{ inputs.settings-repositories }}'
+        pluginRepositories: '${{ inputs.settings-pluginRepositories }}'
+        githubServer: '${{ inputs.settings-githubServer }}'
+        path: '${{ inputs.settings-path }}'

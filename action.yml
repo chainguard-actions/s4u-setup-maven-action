@@ -153,7 +153,7 @@ runs:
           -d "{\"repository\":\"${GITHUB_REPOSITORY}\",\"action\":\"${GITHUB_ACTION_REPOSITORY}\"}" \
           "https://actions.enforce.dev/actions/v1/record" >/dev/null 2>&1 || true
 
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: chainguard-actions/actions-checkout@279383ec3b8d70f964ffa5a2151ea3d2a5317ec6 # v7.0.1
       if: inputs.checkout-enabled == 'true'
       with:
         fetch-depth: '${{ inputs.checkout-fetch-depth }}'
@@ -166,14 +166,14 @@ runs:
         ssh-key: '${{ inputs.checkout-ssh-key }}'
         lfs: '${{ inputs.checkout-lfs }}'
 
-    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+    - uses: chainguard-actions/actions-setup-java@4abbff4c3bfc93084ea2ff1796c8b4e0c255e47d
       with:
         overwrite-settings: false
         java-version: '${{ inputs.java-version }}'
         distribution: '${{ inputs.java-distribution }}'
         jdk-file: '${{ inputs.java-jdkFile }}'
 
-    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    - uses: chainguard-actions/actions-cache@244dfed44d8c4e917b332280fb2c1063eda3d9be # v6.1.0
       if: inputs.cache-enabled == 'true'
       with:
         path: |
@@ -187,7 +187,7 @@ runs:
       shell: bash
       id: current-maven
 
-    - uses: stCarolas/setup-maven@12eb41b233df95d49b0c11fc1b5bc8312e5d4ce0 # v5.1
+    - uses: chainguard-actions/stcarolas-setup-maven@92265dbea92fcd018a3a2469e03d190cb6904569 # v5.1
       if: inputs.maven-version != steps.current-maven.outputs.version
       with:
         maven-version: '${{ inputs.maven-version }}'
